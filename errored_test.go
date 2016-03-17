@@ -11,7 +11,7 @@ func TestErrorStringFormat(t *testing.T) {
 	refStr := "error string"
 	e := Errorf("%s", refStr)
 
-	fileName := "error_test.go"
+	fileName := "errored_test.go"
 	lineNum := 12 // line number where error was formed
 	funcName := "github.com/contiv/errored.TestErrorStringFormat"
 
@@ -35,7 +35,7 @@ func TestErrorStackTrace(t *testing.T) {
 		t.Fatal("Description did not match provided")
 	}
 
-	fileName := "error_test.go"
+	fileName := "errored_test.go"
 	lineNum := 27 // line number where error was formed
 	funcName := "github.com/contiv/errored.getError"
 
