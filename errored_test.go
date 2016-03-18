@@ -2,7 +2,7 @@ package errored
 
 import (
 	"fmt"
-	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -10,6 +10,7 @@ import (
 func TestErrorStringFormat(t *testing.T) {
 	refStr := "error string"
 	e := Errorf("%s", refStr)
+	e.SetDebug(true)
 
 	fileName := "errored_test.go"
 	lineNum := 12 // line number where error was formed
@@ -30,29 +31,76 @@ func getError(msg string) *Error {
 func TestErrorStackTrace(t *testing.T) {
 	msg := "an error"
 	e := getError(msg)
+	e.SetTrace(false)
+	e.SetDebug(true)
 
 	if e.desc != msg {
 		t.Fatal("Description did not match provided")
 	}
 
 	fileName := "errored_test.go"
-	lineNum := 27 // line number where error was formed
+	lineNum := 28 // line number where error was formed
 	funcName := "github.com/contiv/errored.getError"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", msg, funcName, fileName, lineNum)
 
 	if e.Error() != expectedStr {
-		t.Fatalf("Error message yielded an incorrect result with CONTIV_TRACE unset: %s", e.Error())
+		t.Fatalf("Error message yielded an incorrect result with trace unset: %s %s", e.Error(), expectedStr)
 	}
 
-	os.Setenv("CONTIV_TRACE", "1")
+	e.SetTrace(false)
+	e.SetDebug(false)
+	if e.Error() != "an error" {
+		t.Fatalf("Error message did yielded stack trace with trace unset: %q", e.Error())
+	}
+
+	e.SetTrace(true)
 	if e.Error() == "an error\n" {
-		t.Fatal("Error message did not yield stack trace with CONTIV_TRACE set")
+		t.Fatalf("Error message did not yield stack trace with trace set: %v", e.Error())
 	}
 
 	lines := strings.Split(e.Error(), "\n")
 
 	if len(lines) != 6 {
 		t.Fatalf("Stack trace yielded incorrect count: %d", len(lines))
+	}
+}
+
+func TestErrorCombined(t *testing.T) {
+	e := getError("one")
+	e2 := getError("two")
+	newErr := e.Combine(e2)
+	if newErr.Error() != "one: two" {
+		t.Fatalf("Errors did not combine in description: %v", newErr.Error())
+	}
+
+	if !reflect.DeepEqual(e.stack[0], newErr.stack[0]) {
+		t.Fatalf("First stack was not equivalent: %v %v", e.stack, newErr.stack[0])
+	}
+
+	if !reflect.DeepEqual(e2.stack[0], newErr.stack[1]) {
+		t.Fatalf("Second stack was not equivalent: %v %v", e.stack, newErr.stack[0])
+	}
+}
+
+func TestAlways(t *testing.T) {
+	defer func() {
+		AlwaysDebug = false
+		AlwaysTrace = false
+	}()
+
+	e := getError("one")
+	if e.Error() != "one" {
+		t.Fatalf("one != one, or so the test says. %q", e.Error())
+	}
+
+	AlwaysDebug = true
+	if !strings.Contains(e.Error(), "[") {
+		t.Fatalf("Debug output was not provided in error: %q", e.Error())
+	}
+
+	AlwaysTrace = true
+	if !strings.Contains(e.Error(), "\n") {
+		t.Fatalf("Trace output was not provided in error: %q", e.Error())
 	}
 }
