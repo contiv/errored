@@ -16,9 +16,9 @@ limitations under the License.
 /*
 Package errored implements specialized errors for golang that come with:
 
-* Debug and Trace modes
+  * Debug and Trace modes
   * Debug emits the location the error was created, Trace emits the whole stack.
-* Error combination
+  * Error combination
   * Make two errors into one; carries the trace information for both errors with it!
 
 Use it just like `fmt`:
