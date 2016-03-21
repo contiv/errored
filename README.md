@@ -21,7 +21,7 @@ func main() {
 	err.SetDebug(true)
 	err.Error() // => "a message [ <file> <line> <line number> ]"
 	err2 := errored.Errorf("another message")
-	combined := err.Combine(err2.(*errored.Error))
+	combined := err.Combine(err2)
 	combined.SetTrace(true)
 	combined.Error() // => "a message: another message" + two stack traces
 }
