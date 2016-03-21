@@ -104,3 +104,11 @@ func TestAlways(t *testing.T) {
 		t.Fatalf("Trace output was not provided in error: %q", e.Error())
 	}
 }
+
+func TestCode(t *testing.T) {
+	e := Errorf("error")
+	e.Code = 100
+	if e.Error() != "100 error" {
+		t.Fatalf("Error code output did not equal expectation: %v", e.Error())
+	}
+}
