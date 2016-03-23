@@ -32,7 +32,7 @@ Use it just like `fmt`:
 		err.SetDebug(true)
 		err.Error() // => "a message [ <file> <line> <line number> ]
 		err2 := errored.Errorf("another message")
-		combined := err.Combine(err2.(*errored.Error))
+		combined := err.Combine(err2)
 		combined.SetTrace(true)
 		combined.Error() // => "a message: another message" + two stack traces
 	}
@@ -83,10 +83,17 @@ func (e *Error) SetDebug(debug bool) {
 }
 
 // Combine combines two errors into a single one.
-func (e *Error) Combine(e2 *Error) *Error {
+func (e *Error) Combine(e2 error) *Error {
+	if _, ok := e2.(*Error); ok {
+		return &Error{
+			desc:  fmt.Sprintf("%v: %v", e.desc, e2.(*Error).desc),
+			stack: append(e.stack, e2.(*Error).stack...),
+		}
+	}
+
 	return &Error{
-		desc:  fmt.Sprintf("%v: %v", e.desc, e2.desc),
-		stack: append(e.stack, e2.stack...),
+		desc:  fmt.Sprintf("%v: %v", e.desc, e2.Error()),
+		stack: e.stack,
 	}
 }
 

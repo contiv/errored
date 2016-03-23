@@ -1,6 +1,7 @@
 package errored
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -13,7 +14,7 @@ func TestErrorStringFormat(t *testing.T) {
 	e.SetDebug(true)
 
 	fileName := "errored_test.go"
-	lineNum := 12 // line number where error was formed
+	lineNum := 13 // line number where error was formed
 	funcName := "github.com/contiv/errored.TestErrorStringFormat"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", refStr, funcName, fileName, lineNum)
@@ -39,7 +40,7 @@ func TestErrorStackTrace(t *testing.T) {
 	}
 
 	fileName := "errored_test.go"
-	lineNum := 28 // line number where error was formed
+	lineNum := 29 // line number where error was formed
 	funcName := "github.com/contiv/errored.getError"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", msg, funcName, fileName, lineNum)
@@ -80,6 +81,12 @@ func TestErrorCombined(t *testing.T) {
 
 	if !reflect.DeepEqual(e2.stack[0], newErr.stack[1]) {
 		t.Fatalf("Second stack was not equivalent: %v %v", e.stack, newErr.stack[0])
+	}
+
+	err := errors.New("my error")
+	newErr = e.Combine(err)
+	if newErr.Error() != "one: my error" {
+		t.Fatalf("Could not combine error type into *Error: %v %v", e, err)
 	}
 }
 
