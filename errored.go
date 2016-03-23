@@ -61,6 +61,8 @@ type errorStack struct {
 
 // Error is our custom error with description, file, and line.
 type Error struct {
+	Code int
+
 	desc  string
 	stack [][]errorStack
 	trace bool
@@ -99,8 +101,15 @@ func (e *Error) Combine(e2 error) *Error {
 
 // Error() allows *core.Error to present the `error` interface.
 func (e *Error) Error() string {
+	desc := e.desc
+	if e.Code != 0 {
+		desc = fmt.Sprintf("%d %v", e.Code, desc)
+	} else {
+		desc = fmt.Sprintf("%v", desc)
+	}
+
 	if e.trace || AlwaysTrace {
-		ret := e.desc + "\n"
+		ret := desc + "\n"
 
 		for _, stack := range e.stack {
 			for _, line := range stack {
@@ -110,10 +119,10 @@ func (e *Error) Error() string {
 
 		return ret
 	} else if (e.debug || AlwaysDebug) && len(e.stack) > 0 && len(e.stack[0]) > 0 {
-		return fmt.Sprintf("%s [%s %s %d]", e.desc, e.stack[0][0].fun, e.stack[0][0].file, e.stack[0][0].line)
+		return fmt.Sprintf("%s [%s %s %d]", desc, e.stack[0][0].fun, e.stack[0][0].file, e.stack[0][0].line)
 	}
 
-	return e.desc
+	return desc
 }
 
 // Errorf returns an *Error based on the format specification provided.
