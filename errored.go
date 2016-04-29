@@ -35,12 +35,14 @@ Use it just like `fmt`:
 		combined := err.Combine(err2)
 		combined.SetTrace(true)
 		combined.Error() // => "a message: another message" + two stack traces
+		combined.Contains(err2) // => true
 	}
 
 */
 package errored
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"runtime"
@@ -63,10 +65,45 @@ type errorStack struct {
 type Error struct {
 	Code int
 
-	desc  string
-	stack [][]errorStack
-	trace bool
-	debug bool
+	desc   string
+	stack  [][]errorStack
+	errors []error
+	error  error
+	trace  bool
+	debug  bool
+}
+
+// Contains is a predicate that returns if any errors in the combined error
+// collection that are of this error.
+func (e *Error) Contains(err error) bool {
+	return e.ContainsFunc(func(ourErr error) bool {
+		var err1, err2 error
+		if e1, ok := ourErr.(*Error); ok {
+			err1 = e1.error
+		} else {
+			err1 = ourErr
+		}
+
+		if e2, ok := err.(*Error); ok {
+			err2 = e2.error
+		} else {
+			err2 = err
+		}
+
+		return err1 == err2
+	})
+}
+
+// ContainsFunc is like Contains but instead iterates over the errors and
+// executes a predicate function instead.
+func (e *Error) ContainsFunc(f func(error) bool) bool {
+	for _, ourErr := range e.errors {
+		if f(ourErr) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // SetTrace enables the tracing capabilities of errored's Error struct.
@@ -92,14 +129,16 @@ func (e *Error) Combine(e2 error) *Error {
 
 	if _, ok := e2.(*Error); ok {
 		return &Error{
-			desc:  fmt.Sprintf("%v: %v", e.desc, e2.(*Error).desc),
-			stack: append(e.stack, e2.(*Error).stack...),
+			desc:   fmt.Sprintf("%v: %v", e.desc, e2.(*Error).desc),
+			stack:  append(e.stack, e2.(*Error).stack...),
+			errors: append(e.errors, e2.(*Error).errors...),
 		}
 	}
 
 	return &Error{
-		desc:  fmt.Sprintf("%v: %v", e.desc, e2.Error()),
-		stack: e.stack,
+		desc:   fmt.Sprintf("%v: %v", e.desc, e2.Error()),
+		stack:  e.stack,
+		errors: append(e.errors, e2),
 	}
 }
 
@@ -129,11 +168,22 @@ func (e *Error) Error() string {
 	return desc
 }
 
+func (e *Error) String() string {
+	return e.desc
+}
+
 // Errorf returns an *Error based on the format specification provided.
 func Errorf(f string, args ...interface{}) *Error {
+	desc := fmt.Sprintf(f, args...)
+
+	err := errors.New(desc)
+
 	e := &Error{
-		stack: [][]errorStack{},
-		desc:  fmt.Sprintf(f, args...),
+		// XXX This denormalization is needed for mixing/matching trace modes with Contains()
+		error:  err,
+		errors: []error{err},
+		stack:  [][]errorStack{},
+		desc:   desc,
 	}
 
 	i := 1
