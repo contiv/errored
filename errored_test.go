@@ -88,6 +88,11 @@ func TestErrorCombined(t *testing.T) {
 	if newErr.Error() != "one: my error" {
 		t.Fatalf("Could not combine error type into *Error: %v %v", e, err)
 	}
+
+	newErr = e.Combine(nil)
+	if !reflect.DeepEqual(e, newErr) {
+		t.Fatalf("Nil handling was inappropriate during combine")
+	}
 }
 
 func TestAlways(t *testing.T) {

@@ -86,6 +86,10 @@ func (e *Error) SetDebug(debug bool) {
 
 // Combine combines two errors into a single one.
 func (e *Error) Combine(e2 error) *Error {
+	if e2 == nil {
+		return e
+	}
+
 	if _, ok := e2.(*Error); ok {
 		return &Error{
 			desc:  fmt.Sprintf("%v: %v", e.desc, e2.(*Error).desc),
