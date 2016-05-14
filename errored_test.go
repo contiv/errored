@@ -83,6 +83,24 @@ func TestErrorCombined(t *testing.T) {
 		t.Fatalf("Second stack was not equivalent: %v %v", e.stack, newErr.stack[0])
 	}
 
+	if !newErr.Contains(e) || !newErr.Contains(e) {
+		t.Fatal("Could not find original errors in combined error")
+	}
+
+	AlwaysDebug = true
+	AlwaysTrace = true
+	defer func() {
+		AlwaysTrace = false
+		AlwaysDebug = false
+	}()
+
+	if !newErr.Contains(e) || !newErr.Contains(e) {
+		t.Fatal("Could not find original errors in combined error")
+	}
+
+	AlwaysTrace = false
+	AlwaysDebug = false
+
 	err := errors.New("my error")
 	newErr = e.Combine(err)
 	if newErr.Error() != "one: my error" {
@@ -92,6 +110,12 @@ func TestErrorCombined(t *testing.T) {
 	newErr = e.Combine(nil)
 	if !reflect.DeepEqual(e, newErr) {
 		t.Fatalf("Nil handling was inappropriate during combine")
+  }
+
+	if !newErr.ContainsFunc(func(err error) bool {
+		return err.Error() == "one"
+	}) {
+		t.Fatal("ContainsFunc did not yield a true value")
 	}
 }
 
