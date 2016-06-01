@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -14,7 +15,7 @@ func TestErrorStringFormat(t *testing.T) {
 	e.SetDebug(true)
 
 	fileName := "errored_test.go"
-	lineNum := 13 // line number where error was formed
+	lineNum := 14 // line number where error was formed
 	funcName := "github.com/contiv/errored.TestErrorStringFormat"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", refStr, funcName, fileName, lineNum)
@@ -40,7 +41,7 @@ func TestErrorStackTrace(t *testing.T) {
 	}
 
 	fileName := "errored_test.go"
-	lineNum := 29 // line number where error was formed
+	lineNum := 30 // line number where error was formed
 	funcName := "github.com/contiv/errored.getError"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", msg, funcName, fileName, lineNum)
@@ -110,7 +111,7 @@ func TestErrorCombined(t *testing.T) {
 	newErr = e.Combine(nil)
 	if !reflect.DeepEqual(e, newErr) {
 		t.Fatalf("Nil handling was inappropriate during combine")
-  }
+	}
 
 	if !newErr.ContainsFunc(func(err error) bool {
 		return err.Error() == "one"
@@ -146,5 +147,24 @@ func TestCode(t *testing.T) {
 	e.Code = 100
 	if e.Error() != "100 error" {
 		t.Fatalf("Error code output did not equal expectation: %v", e.Error())
+	}
+}
+
+func TestErrorNew(t *testing.T) {
+	err := New("test")
+	if err.Error() != "test" {
+		t.Fatal("Error was not equal after New call")
+	}
+
+	AlwaysDebug = true
+	AlwaysTrace = true
+	defer func() {
+		AlwaysDebug = false
+		AlwaysTrace = false
+	}()
+
+	err = New("test")
+	if !regexp.MustCompile(`TestErrorNew`).MatchString(err.Error()) {
+		t.Fatalf("Could not find trace in error from New: %v", err.Error())
 	}
 }

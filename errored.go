@@ -176,8 +176,17 @@ func (e *Error) String() string {
 func Errorf(f string, args ...interface{}) *Error {
 	desc := fmt.Sprintf(f, args...)
 
-	err := errors.New(desc)
+	e := New(desc)
+	for i := range e.stack {
+		e.stack[i] = e.stack[i][1:]
+	}
 
+	return e
+}
+
+// New constructs a new error with the provided text.
+func New(desc string) *Error {
+	err := errors.New(desc)
 	e := &Error{
 		// XXX This denormalization is needed for mixing/matching trace modes with Contains()
 		error:  err,
@@ -210,6 +219,5 @@ func Errorf(f string, args ...interface{}) *Error {
 	}
 
 	e.stack = append(e.stack, errors)
-
 	return e
 }
