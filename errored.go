@@ -152,10 +152,10 @@ func (e *Error) Error() string {
 	}
 
 	if e.trace || AlwaysTrace {
-		ret := desc + "\n"
-
-		for _, stack := range e.stack {
-			for _, line := range stack {
+		var ret string
+		for i := 0; i < len(e.errors); i++ {
+			ret += fmt.Sprintf("%s\n", e.errors[i].Error())
+			for _, line := range e.stack[i] {
 				ret += fmt.Sprintf("\t%s [%s %d]\n", line.fun, line.file, line.line)
 			}
 		}
