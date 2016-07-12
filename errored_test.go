@@ -132,6 +132,15 @@ func TestErrorCombined(t *testing.T) {
 	}) {
 		t.Fatal("ContainsFunc did not yield a true value")
 	}
+
+	newErr = New("foo").Combine(fmt.Errorf("foobar")).Combine(New("bar"))
+	if len(newErr.errors) != len(newErr.stack) {
+		t.Log("mismatch between combined errors and combined stacks")
+	}
+	for i := range newErr.errors {
+		t.Logf("%s: %v", newErr.errors[i], newErr.stack[i])
+	}
+
 }
 
 func TestAlways(t *testing.T) {
