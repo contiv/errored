@@ -129,15 +129,15 @@ func (e *Error) Combine(e2 error) *Error {
 
 	if _, ok := e2.(*Error); ok {
 		return &Error{
-			desc:   fmt.Sprintf("%v: %v", e.desc, e2.(*Error).desc),
+			desc:   e.desc,
 			stack:  append(e.stack, e2.(*Error).stack...),
 			errors: append(e.errors, e2.(*Error).errors...),
 		}
 	}
 
 	return &Error{
-		desc:   fmt.Sprintf("%v: %v", e.desc, e2.Error()),
-		stack:  e.stack,
+		desc:   e.desc,
+		stack:  append(e.stack, getStack(2)),
 		errors: append(e.errors, e2),
 	}
 }
@@ -163,6 +163,10 @@ func (e *Error) Error() string {
 		return ret
 	} else if (e.debug || AlwaysDebug) && len(e.stack) > 0 && len(e.stack[0]) > 0 {
 		return fmt.Sprintf("%s [%s %s %d]", desc, e.stack[0][0].fun, e.stack[0][0].file, e.stack[0][0].line)
+	}
+
+	for _, err := range e.errors[1:] {
+		desc = fmt.Sprintf("%s: %v", desc, err)
 	}
 
 	return desc
@@ -195,9 +199,14 @@ func New(desc string) *Error {
 		desc:   desc,
 	}
 
-	i := 1
+	e.stack = append(e.stack, getStack(2))
+	return e
+}
 
+func getStack(offset int) []errorStack {
 	errors := []errorStack{}
+
+	i := offset
 
 	for {
 		stack := errorStack{}
@@ -218,6 +227,5 @@ func New(desc string) *Error {
 		i++
 	}
 
-	e.stack = append(e.stack, errors)
-	return e
+	return errors
 }
