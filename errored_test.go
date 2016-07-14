@@ -3,6 +3,7 @@ package errored
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -15,12 +16,13 @@ func TestErrorStringFormat(t *testing.T) {
 	e.SetDebug(true)
 
 	fileName := "errored_test.go"
-	lineNum := 14 // line number where error was formed
+	lineNum := 15 // line number where error was formed
 	funcName := "github.com/contiv/errored.TestErrorStringFormat"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", refStr, funcName, fileName, lineNum)
 
 	if e.Error() != expectedStr {
+		fmt.Fprintf(os.Stderr, e.Error())
 		t.Fatalf("error string mismatch. Expected: %q, got %q", expectedStr,
 			e.Error())
 	}
@@ -41,30 +43,42 @@ func TestErrorStackTrace(t *testing.T) {
 	}
 
 	fileName := "errored_test.go"
-	lineNum := 30 // line number where error was formed
+	lineNum := 32 // line number where error was formed
 	funcName := "github.com/contiv/errored.getError"
 
 	expectedStr := fmt.Sprintf("%s [%s %s %d]", msg, funcName, fileName, lineNum)
 
 	if e.Error() != expectedStr {
+		fmt.Fprintf(os.Stderr, e.Error())
 		t.Fatalf("Error message yielded an incorrect result with trace unset: %s %s", e.Error(), expectedStr)
 	}
 
 	e.SetTrace(false)
 	e.SetDebug(false)
 	if e.Error() != "an error" {
+		fmt.Fprintf(os.Stderr, e.Error())
 		t.Fatalf("Error message did yielded stack trace with trace unset: %q", e.Error())
 	}
 
 	e.SetTrace(true)
 	if e.Error() == "an error\n" {
+		fmt.Fprintf(os.Stderr, e.Error())
 		t.Fatalf("Error message did not yield stack trace with trace set: %v", e.Error())
 	}
 
 	lines := strings.Split(e.Error(), "\n")
 
 	if len(lines) != 6 {
+		fmt.Fprintf(os.Stderr, e.Error())
 		t.Fatalf("Stack trace yielded incorrect count: %d", len(lines))
+	}
+
+	e2 := e.Combine(New("error 2"))
+	e2.SetTrace(true)
+
+	if !strings.Contains(e2.Error(), "error 2") || !strings.Contains(e2.Error(), "an error") {
+		fmt.Fprintf(os.Stderr, e2.Error())
+		t.Fatalf("Stack trace did not combine errors")
 	}
 }
 
@@ -117,6 +131,14 @@ func TestErrorCombined(t *testing.T) {
 		return err.Error() == "one"
 	}) {
 		t.Fatal("ContainsFunc did not yield a true value")
+	}
+
+	newErr = New("foo").Combine(fmt.Errorf("foobar")).Combine(New("bar"))
+	if len(newErr.errors) != len(newErr.stack) {
+		for i := range newErr.errors {
+			t.Logf("%s: %v", newErr.errors[i], newErr.stack[i])
+		}
+		t.Fatal("mismatch between combined errors and combined stacks")
 	}
 }
 
